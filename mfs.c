@@ -1,17 +1,17 @@
 // The MIT License (MIT)
-// 
-// Copyright (c) 2020 Trevor Bakker 
-// 
+//
+// Copyright (c) 2020 Trevor Bakker
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in
 // all copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -29,6 +29,7 @@
 #include <errno.h>
 #include <string.h>
 #include <signal.h>
+#include <stdbool.h>
 
 #define MAX_NUM_ARGUMENTS 3
 
@@ -39,6 +40,24 @@
 
 #define MAX_COMMAND_SIZE 255    // The maximum command-line size
 
+
+
+struct __attribute__((__packed__)) DirectoryEntry
+{
+  char DIR_Name[11];
+  uint8_t DIR_Attr;
+  uint8_t Unused1[8];
+  uint16_t DIR_FirstClusterHigh;
+  uint8_t Unused2[4];
+  uint16_t DIR_FirstClusterLow;
+  uint32_t DIR_FileSize;
+};
+
+FILE *fp = NULL; //file pointer
+
+struct DirectoryEntry dir[16];
+
+bool delValid = false; //true if del was previous function
 
 int main()
 {
@@ -60,13 +79,13 @@ int main()
     /* Parse input */
     char *token[MAX_NUM_ARGUMENTS];
 
-    int   token_count = 0;                                 
-                                                           
+    int   token_count = 0;
+
     // Pointer to point to the token
     // parsed by strsep
-    char *arg_ptr;                                         
-                                                           
-    char *working_str  = strdup( cmd_str );                
+    char *arg_ptr;
+
+    char *working_str  = strdup( cmd_str );
 
     // we are going to move the working_str pointer so
     // keep track of its original value so we can deallocate
@@ -74,7 +93,7 @@ int main()
     char *working_root = working_str;
 
     // Tokenize the input stringswith whitespace used as the delimiter
-    while ( ( (arg_ptr = strsep(&working_str, WHITESPACE ) ) != NULL) && 
+    while ( ( (arg_ptr = strsep(&working_str, WHITESPACE ) ) != NULL) &&
               (token_count<MAX_NUM_ARGUMENTS))
     {
       token[token_count] = strndup( arg_ptr, MAX_COMMAND_SIZE );
@@ -89,9 +108,94 @@ int main()
     // \TODO Remove this code and replace with your FAT32 functionality
 
     int token_index  = 0;
-    for( token_index = 0; token_index < token_count; token_index ++ ) 
+    for( token_index = 0; token_index < token_count; token_index ++ )
     {
-      printf("token[%d] = %s\n", token_index, token[token_index] );  
+      printf("token[%d] = %s\n", token_index, token[token_index] );
+    }
+
+
+
+    if(strcmp(token[0], "open"))
+    {
+      if(fp == NULL)
+      {
+        if(fp = fopen(token[1], "r"))
+        {
+          printf("File: %s open.\n", token[1]);
+        }
+        else
+        {
+          printf("Error: File system image not found");
+        }
+      }
+      else
+      {
+        printf("Error: File system image already open.\n");
+      }
+    }
+
+    if(strcmp(token[0], "close"))
+    {
+      if(fp == NULL)
+      {
+        printf("Error: File system not open./n");
+      }
+      else
+      {
+        fclose(fp);
+        fp = NULL;
+      }
+    }
+
+    if(fp != NULL) //commands can only run if a file is open
+    {
+      if(strcmp(token[0], "undel"))
+      {
+        if(delValid == true)
+        {
+          //undel
+        }
+        else
+        {
+          printf("Error: Can't undel last change.\n")
+        }
+      }
+      delValid = false;
+
+      if(strcmp(token[0],"read"))
+      {
+        fseek(fp, atoi(token[2]), SEEK_SET);
+
+      }
+      else if(strcmp(token[0], "cd"))
+      {
+        // fseek(fp,)
+      }
+      else if(strcmp(token[0], "info"))
+      {
+
+      }
+      else if(strcmp(token[0], "stat"))
+      {
+
+      }
+      else if(strcmp(token[0], "ls"))
+      {
+
+      }
+      else if(strcmp(token[0], "read"))
+      {
+
+      }
+      else if(strcmp(token[0], "del"))
+      {
+        delValid = true;
+      }
+
+    }
+    else
+    {
+      printf("Error: File system not open.\n");
     }
 
     free( working_root );
