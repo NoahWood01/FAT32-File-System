@@ -114,18 +114,21 @@ int main()
     }
 
 
-
-    if(strcmp(token[0], "open"))
+    if(strcmp(token[0], "quit") == 0)
     {
-      if(fp == NULL)
+      exit(0);
+    }
+    else if(strcmp(token[0], "open") == 0)
+    {
+      if(fp == NULL) //if no file is currently open
       {
-        if(fp = fopen(token[1], "r"))
+        if((fp = fopen(token[1], "r")) != NULL)//if fopen succesfully opened the img
         {
-          printf("File: %s open.\n", token[1]);
+          printf("File %s is now open.\n", token[1]);
         }
         else
         {
-          printf("Error: File system image not found");
+          printf("Error: File system image not found\n");
         }
       }
       else
@@ -134,7 +137,7 @@ int main()
       }
     }
 
-    if(strcmp(token[0], "close"))
+    else if(strcmp(token[0], "close") == 0)
     {
       if(fp == NULL)
       {
@@ -143,13 +146,14 @@ int main()
       else
       {
         fclose(fp);
+        printf("File successfully closed.\n");
         fp = NULL;
       }
     }
 
-    if(fp != NULL) //commands can only run if a file is open
+    else if(fp != NULL) //commands can only run if a file is open
     {
-      if(strcmp(token[0], "undel"))
+      if(strcmp(token[0], "undel") == 0)
       {
         if(delValid == true)
         {
@@ -157,37 +161,37 @@ int main()
         }
         else
         {
-          printf("Error: Can't undel last change.\n")
+          printf("Error: Can't undel last change.\n");
         }
       }
       delValid = false;
 
-      if(strcmp(token[0],"read"))
+      if(strcmp(token[0],"read") == 0)
       {
         fseek(fp, atoi(token[2]), SEEK_SET);
 
       }
-      else if(strcmp(token[0], "cd"))
+      else if(strcmp(token[0], "cd") == 0)
       {
         // fseek(fp,)
       }
-      else if(strcmp(token[0], "info"))
+      else if(strcmp(token[0], "info") == 0)
       {
 
       }
-      else if(strcmp(token[0], "stat"))
+      else if(strcmp(token[0], "stat") == 0)
       {
 
       }
-      else if(strcmp(token[0], "ls"))
+      else if(strcmp(token[0], "ls") == 0)
       {
 
       }
-      else if(strcmp(token[0], "read"))
+      else if(strcmp(token[0], "read") == 0)
       {
 
       }
-      else if(strcmp(token[0], "del"))
+      else if(strcmp(token[0], "del") == 0)
       {
         delValid = true;
       }
