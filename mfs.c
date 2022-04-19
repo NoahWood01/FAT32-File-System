@@ -53,7 +53,12 @@ struct __attribute__((__packed__)) DirectoryEntry
   uint32_t DIR_FileSize;
 };
 
+
+// read(buffer, size, 1, fp);
+// write(buffer, size, 1, ofp);
+
 FILE *fp = NULL; //file pointer
+FILE *ofp = NULL; //output file pointer
 
 struct DirectoryEntry dir[16];
 
@@ -187,9 +192,32 @@ int main()
       {
 
       }
-      else if(strcmp(token[0], "read") == 0)
+      else if(strcmp(token[0], "get") == 0)
       {
-
+        //compare.c for string name token[1]
+        // int cluster = dir[i].DIR_FirstClusterLow;
+        // int offset = LBAtoOffset(cluster);
+        // int size = dir[i].size;
+        // fseek(fp, offset, SEEK_SET);
+        // ofp = fopen(token[1], "w");
+        //
+        // while(size > 512) //might be BPB_BytesPerSec
+        // {
+        //   uint8_t buffer[512];
+        //   read(buffer, 512, 1, fp);
+        //   write(buffer, 512, 1, ofp);
+        //   size = size - 512;
+        //   cluster = NextLB(cluster);
+        //   offset = LBAtooffset(cluster);
+        //   fseek(fp, offset, SEEK_SET);
+        //
+        // }
+        // if(size > 0)
+        // {
+        //   read(buffer, size, 1, fp);
+        //   write(buffer, size, 1, ofp);
+        //   fclose(ofp);
+        // }
       }
       else if(strcmp(token[0], "del") == 0)
       {
