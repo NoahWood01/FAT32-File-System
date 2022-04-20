@@ -54,8 +54,8 @@ struct __attribute__((__packed__)) DirectoryEntry
 };
 
 
-// read(buffer, size, 1, fp);
-// write(buffer, size, 1, ofp);
+// read(uint8_t buffer[], uint8_t size, 1);
+// write(uint8_t buffer[], uint8_t size, 1);
 
 FILE *fp = NULL; //file pointer
 FILE *ofp = NULL; //output file pointer
@@ -179,6 +179,12 @@ int main()
       else if(strcmp(token[0], "cd") == 0)
       {
         // fseek(fp,)
+        // int entry = findFile(token[1]);
+        // int cluster = dir[i].DIR_FirstClusterLow;
+        // int offset = LBAtoOffset(cluster);
+        // fseek(fp, offset, SEEK_SET);
+        // fread(dir, sizeof(dir), 16, fp);
+
       }
       else if(strcmp(token[0], "info") == 0)
       {
@@ -194,18 +200,18 @@ int main()
       }
       else if(strcmp(token[0], "get") == 0)
       {
-        //compare.c for string name token[1]
+        // compare.c for string name token[1]
         // int cluster = dir[i].DIR_FirstClusterLow;
         // int offset = LBAtoOffset(cluster);
         // int size = dir[i].size;
         // fseek(fp, offset, SEEK_SET);
         // ofp = fopen(token[1], "w");
-        //
+        // uint8_t buffer[512];
         // while(size > 512) //might be BPB_BytesPerSec
         // {
-        //   uint8_t buffer[512];
-        //   read(buffer, 512, 1, fp);
-        //   write(buffer, 512, 1, ofp);
+        //
+        //   fread(buffer, 512, 1, fp);
+        //   fwrite(buffer, 512, 1, ofp);
         //   size = size - 512;
         //   cluster = NextLB(cluster);
         //   offset = LBAtooffset(cluster);
@@ -214,8 +220,8 @@ int main()
         // }
         // if(size > 0)
         // {
-        //   read(buffer, size, 1, fp);
-        //   write(buffer, size, 1, ofp);
+        //   fread(buffer, size, 1, fp);
+        //   fwrite(buffer, size, 1, ofp);
         //   fclose(ofp);
         // }
       }
