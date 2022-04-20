@@ -53,12 +53,21 @@ struct __attribute__((__packed__)) DirectoryEntry
   uint32_t DIR_FileSize;
 };
 
+//method declarations
+int16_t NextLB(uint32_t sector);
+int LBAtoOffset(int32_t sector);
+void initFAT32();
 
-// read(uint8_t buffer[], uint8_t size, 1);
-// write(uint8_t buffer[], uint8_t size, 1);
-
+//global variables
 FILE *fp = NULL; //file pointer
 FILE *ofp = NULL; //output file pointer
+uint16_t BPB_BytesPerSec;
+uint8_t BPB_SecPerClus;
+uint16_t BPB_RsvdSecCnt;
+uint8_t BPB_NumFATs;
+uint32_t BPB_FATSz32;
+
+
 
 struct DirectoryEntry dir[16];
 
@@ -129,6 +138,7 @@ int main()
       {
         if((fp = fopen(token[1], "r")) != NULL)//if fopen succesfully opened the img
         {
+          initFAT32();
           printf("File %s is now open.\n", token[1]);
         }
         else
@@ -188,7 +198,12 @@ int main()
       }
       else if(strcmp(token[0], "info") == 0)
       {
-
+        //prints out info about fat32 to terminal
+        printf("BPB_BytesPerSec:\t %d\t%x\n", BPB_BytesPerSec, BPB_BytesPerSec);
+        printf("BPB_SecPerClus: \t %d\t%x\n", BPB_SecPerClus, BPB_SecPerClus);
+        printf("BPB_RsvdSecCnt: \t %d\t%x\n", BPB_RsvdSecCnt, BPB_RsvdSecCnt);
+        printf("BPB_NumFATs:    \t %d\t%x\n", BPB_NumFATs, BPB_NumFATs);
+        printf("BPB_FATSz32:    \t %d\t%x\n", BPB_FATSz32, BPB_FATSz32);
       }
       else if(strcmp(token[0], "stat") == 0)
       {
@@ -240,4 +255,33 @@ int main()
 
   }
   return 0;
+}
+
+void initFAT32()
+{
+  fseek(fp, 11, SEEK_SET); //BPB_BytesPerSec offset 11 2 bytes
+  fread(&BPB_BytesPerSec, 2, 1, fp);
+  fseek(fp, 13, SEEK_SET); //BPB_SecPerClus offset 13 1 bytes
+  fread(&BPB_SecPerClus, 1, 1, fp);
+  fseek(fp, 14, SEEK_SET); //BPB_BytesPerSec offset 14 2 bytes
+  fread(&BPB_RsvdSecCnt, 14, 2, fp);
+  fseek(fp, 16, SEEK_SET); //BPB_NumFATs offset 16 1 bytes
+  fread(&BPB_NumFATs, 1, 1, fp);
+  fseek(fp, 36, SEEK_SET); //BPB_FATSz32 offset 36 4 bytes
+  fread(&BPB_FATSz32, 4, 1, fp);
+
+}
+
+int16_t NextLB(uint32_t sector)
+{
+  uint32_t FATAddress = (BPB_BytesPerSec * BPB_RsvdSecCnt) + (sector * 4);
+  int16_t val;
+  fseek(fp, FATAddress, SEEK_SET);
+  fread(&val, 2, 1, fp);
+  return val;
+}
+
+int LBAtoOffset(int32_t sector)
+{
+  return ((sector - 2) * BPB_BytesPerSec) + (BPB_BytesPerSec * BPB_RsvdSecCnt) + (BPB_NumFATs * BPB_FATSz32 * BPB_BytesPerSec);
 }
