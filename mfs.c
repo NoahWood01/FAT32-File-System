@@ -20,6 +20,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+
+
 #define _GNU_SOURCE
 
 #include <stdio.h>
@@ -31,7 +33,7 @@
 #include <signal.h>
 #include <stdbool.h>
 
-#define MAX_NUM_ARGUMENTS 3
+#define MAX_NUM_ARGUMENTS 4
 
 #define WHITESPACE " \t\n"      // We want to split our command line up into tokens
                                 // so we need to define what delimits our tokens.
@@ -58,6 +60,15 @@ int16_t NextLB(uint32_t sector);
 int LBAtoOffset(int32_t sector);
 void initFAT32();
 
+void FAT32info();
+void FAT32get(char* name);
+void FAT32stat(char* name);
+void FAT32cd(char* name);
+void FAT32ls();
+void FAT32read(char* name, int offset, int numOfBytes);
+void FAT32del(char* name);
+void FAT32undel(char* name);
+
 //global variables
 FILE *fp = NULL; //file pointer
 FILE *ofp = NULL; //output file pointer
@@ -66,6 +77,7 @@ uint8_t BPB_SecPerClus;
 uint16_t BPB_RsvdSecCnt;
 uint8_t BPB_NumFATs;
 uint32_t BPB_FATSz32;
+uint8_t buffer[512];
 
 
 
@@ -130,6 +142,7 @@ int main()
 
     if(strcmp(token[0], "quit") == 0)
     {
+      fclose(fp);
       exit(0);
     }
     else if(strcmp(token[0], "open") == 0)
@@ -170,6 +183,7 @@ int main()
     {
       if(strcmp(token[0], "undel") == 0)
       {
+        FAT32undel(token[1]);
         if(delValid == true)
         {
           //undel
@@ -183,11 +197,17 @@ int main()
 
       if(strcmp(token[0],"read") == 0)
       {
-        fseek(fp, atoi(token[2]), SEEK_SET);
+        //read hamlet.txt 1 2
+        //token[1] file file name
+        //token[2] offset;
+        //token[3] # of bytes
+
+        FAT32read(token[0], atoi(token[2]), atoi(token[3]));
 
       }
       else if(strcmp(token[0], "cd") == 0)
       {
+        FAT32cd(token[1]);
         // fseek(fp,)
         // int entry = findFile(token[1]);
         // int cluster = dir[i].DIR_FirstClusterLow;
@@ -198,23 +218,20 @@ int main()
       }
       else if(strcmp(token[0], "info") == 0)
       {
-        //prints out info about fat32 to terminal
-        printf("BPB_BytesPerSec:\t %d\t%x\n", BPB_BytesPerSec, BPB_BytesPerSec);
-        printf("BPB_SecPerClus: \t %d\t%x\n", BPB_SecPerClus, BPB_SecPerClus);
-        printf("BPB_RsvdSecCnt: \t %d\t%x\n", BPB_RsvdSecCnt, BPB_RsvdSecCnt);
-        printf("BPB_NumFATs:    \t %d\t%x\n", BPB_NumFATs, BPB_NumFATs);
-        printf("BPB_FATSz32:    \t %d\t%x\n", BPB_FATSz32, BPB_FATSz32);
+        FAT32info();
+
       }
       else if(strcmp(token[0], "stat") == 0)
       {
-
+        FAT32stat(token[1]);
       }
       else if(strcmp(token[0], "ls") == 0)
       {
-
+        FAT32ls();
       }
       else if(strcmp(token[0], "get") == 0)
       {
+        FAT32get(token[1]);
         // compare.c for string name token[1]
         // int cluster = dir[i].DIR_FirstClusterLow;
         // int offset = LBAtoOffset(cluster);
@@ -242,6 +259,7 @@ int main()
       }
       else if(strcmp(token[0], "del") == 0)
       {
+        FAT32del(token[1]);
         delValid = true;
       }
 
@@ -284,4 +302,56 @@ int16_t NextLB(uint32_t sector)
 int LBAtoOffset(int32_t sector)
 {
   return ((sector - 2) * BPB_BytesPerSec) + (BPB_BytesPerSec * BPB_RsvdSecCnt) + (BPB_NumFATs * BPB_FATSz32 * BPB_BytesPerSec);
+}
+
+
+void FAT32info()
+{
+  //prints out info about fat32 to terminal
+  printf("BPB_BytesPerSec:\t %d\t%x\n", BPB_BytesPerSec, BPB_BytesPerSec);
+  printf("BPB_SecPerClus: \t %d\t%x\n", BPB_SecPerClus, BPB_SecPerClus);
+  printf("BPB_RsvdSecCnt: \t %d\t%x\n", BPB_RsvdSecCnt, BPB_RsvdSecCnt);
+  printf("BPB_NumFATs:    \t %d\t%x\n", BPB_NumFATs, BPB_NumFATs);
+  printf("BPB_FATSz32:    \t %d\t%x\n", BPB_FATSz32, BPB_FATSz32);
+}
+
+
+void FAT32get(char* name)
+{
+
+}
+void FAT32stat(char* name)
+{
+
+}
+void FAT32cd(char* name)
+{
+
+}
+void FAT32ls()
+{
+
+}
+
+void FAT32read(char* name, int offset, int numOfBytes)
+{
+  //find
+  // int offset = Fileoffset + initOffset;
+  // offset += fileOffset;
+  fseek(fp, offset, SEEK_SET);
+  fread(buffer, numOfBytes, 1, fp);
+
+  for(int i = 0; i < numOfBytes; i++)
+  {
+    printf("%d ", buffer[i]);
+  }
+  printf("\n");
+}
+void FAT32del(char* name)
+{
+
+}
+void FAT32undel(char* name)
+{
+
 }
