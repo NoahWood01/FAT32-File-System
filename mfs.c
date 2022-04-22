@@ -32,6 +32,8 @@
 #include <string.h>
 #include <signal.h>
 #include <stdbool.h>
+#include <stdint.h>
+#include <ctype.h>
 
 #define MAX_NUM_ARGUMENTS 4
 
@@ -68,6 +70,7 @@ void FAT32ls();
 void FAT32read(char* name, int offset, int numOfBytes);
 void FAT32del(char* name);
 void FAT32undel(char* name);
+bool compare(char input[12], char IMG_Name[12]);
 
 //global variables
 FILE *fp = NULL; //file pointer
@@ -139,10 +142,16 @@ int main()
       printf("token[%d] = %s\n", token_index, token[token_index] );
     }
 
+    if(token[0] == NULL)
+    {
+        continue;
+    }
 
     if(strcmp(token[0], "quit") == 0)
     {
-      fclose(fp);
+        if(fp != NULL)
+          fclose(fp);
+
       exit(0);
     }
     else if(strcmp(token[0], "open") == 0)
@@ -288,6 +297,14 @@ void initFAT32()
   fseek(fp, 36, SEEK_SET); //BPB_FATSz32 offset 36 4 bytes
   fread(&BPB_FATSz32, 4, 1, fp);
 
+  // get Directory entries
+  fseek(fp, 0x100400, SEEK_SET);
+  fread(&dir[0], sizeof(struct DirectoryEntry), 16, fp);
+  for(int i = 0; i < 16; i++)
+  {
+      printf("Filename: %s\n", dir[i].DIR_Name);
+  }
+
 }
 
 int16_t NextLB(uint32_t sector)
@@ -322,7 +339,26 @@ void FAT32get(char* name)
 }
 void FAT32stat(char* name)
 {
+    char fileName[12];
+    bool found = false;
+    printf("poop\n");
+    for(int i = 0; i < 16; i++)
+    {
+        strcpy(fileName, dir[i].DIR_Name);
+        printf("poop\n");
+        if(compare(fileName,name))
+        {
+            printf("%d %d %d\n",dir[i].DIR_Attr,
+                dir[i].DIR_FirstClusterLow, dir[i].DIR_FirstClusterHigh);
+            found = true;
+            break;
+        }
 
+    }
+    if(!found)
+    {
+        printf("Error: File not found.\n");
+    }
 }
 void FAT32cd(char* name)
 {
@@ -330,7 +366,17 @@ void FAT32cd(char* name)
 }
 void FAT32ls()
 {
-
+    for(int i = 0; i < 16; i++)
+    {
+        if((dir[i].DIR_Attr == 0x01 || dir[i].DIR_Attr == 0x10 ||
+            dir[i].DIR_Attr == 0x20) && dir[i].DIR_Name[0] != 0xe5)
+        {
+            char name[12];
+            memcpy(name, dir[i].DIR_Name, 11);
+            name[11] = '\0';
+            printf("%s\n",name);
+        }
+    }
 }
 
 void FAT32read(char* name, int offset, int numOfBytes)
@@ -354,4 +400,40 @@ void FAT32del(char* name)
 void FAT32undel(char* name)
 {
 
+}
+
+bool compare(char input[12], char IMG_Name[12])
+{
+
+    char expanded_name[12];
+    memset( expanded_name, ' ', 12 );
+
+    char *token = strtok( input, "." );
+
+    strncpy( expanded_name, token, strlen( token ) );
+
+    token = strtok( NULL, "." );
+
+    if( token )
+    {
+      strncpy( (char*)(expanded_name+8), token, strlen(token ) );
+    }
+
+    expanded_name[11] = '\0';
+
+    int i;
+    for( i = 0; i < 11; i++ )
+    {
+      expanded_name[i] = toupper( expanded_name[i] );
+    }
+
+    if( strncmp( expanded_name, IMG_Name, 11 ) == 0 )
+    {
+      printf("They matched\n");
+      return true;
+    }
+    else
+    {
+        return false;
+    }
 }
