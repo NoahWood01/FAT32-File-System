@@ -70,7 +70,7 @@ void FAT32ls();
 void FAT32read(char* name, int offset, int numOfBytes);
 void FAT32del(char* name);
 void FAT32undel(char* name);
-bool compare(char input[12], char IMG_Name[12]);
+bool compare(char* name, char* dirName);
 
 //global variables
 FILE *fp = NULL; //file pointer
@@ -335,21 +335,51 @@ void FAT32info()
 
 void FAT32get(char* name)
 {
+    bool found = false;
+    for(int i = 0; i < 16; i++)
+    {
+        if(compare(name, dir[i].DIR_Name))
+        {
+            int cluster = dir[i].DIR_FirstClusterLow;
+            int offset = LBAtoOffset(cluster);
+            int size = dir[i].DIR_FileSize;
+            fseek(fp, offset, SEEK_SET);
+            while(size >= 512)
+            {
+               fread(buffer, 512, 1, fp);
+               fwrite(buffer, 512, 1, ofp);
+               size = size - 512;
+               cluster = NextLB(cluster);
+               offset = LBAtoOffset(cluster);
+               fseek(fp, offset, SEEK_SET);
+
+            }
+            if(size > 0)
+            {
+               fread(buffer, size, 1, fp);
+               fwrite(buffer, size, 1, ofp);
+               fclose(ofp);
+            }
+            found = true;
+            break;
+        }
+        if(!found)
+        {
+            printf("Error: File not found.\n");
+        }
+    }
 
 }
 void FAT32stat(char* name)
 {
-    char fileName[12];
     bool found = false;
-    printf("poop\n");
     for(int i = 0; i < 16; i++)
     {
-        strcpy(fileName, dir[i].DIR_Name);
-        printf("poop\n");
-        if(compare(fileName,name))
+        if(compare(name, dir[i].DIR_Name))
         {
-            printf("%d %d %d\n",dir[i].DIR_Attr,
-                dir[i].DIR_FirstClusterLow, dir[i].DIR_FirstClusterHigh);
+            printf("%-20s %-15s %-25s\n","File Attribute","Size", "Starting Cluster Number");
+            printf("%-20d %-15d %-25d\n",dir[i].DIR_Attr,
+                dir[i].DIR_FileSize, dir[i].DIR_FirstClusterLow);
             found = true;
             break;
         }
@@ -362,7 +392,42 @@ void FAT32stat(char* name)
 }
 void FAT32cd(char* name)
 {
-
+    char * directory;
+    directory = strtok(name, "/");
+    for(int i = 0; i < 16; i++)
+    {
+        if(compare(directory, dir[i].DIR_Name) && dir[i].DIR_Attr == 0x10)
+        {
+            int cluster = dir[i].DIR_FirstClusterLow;
+            // standard for ../
+            if(cluster == 0)
+            {
+                cluster = 2;
+            }
+            int offset = LBAtoOffset(cluster);
+            fseek(fp, offset, SEEK_SET);
+            fread(&dir[0],sizeof(struct DirectoryEntry), 16, fp);
+            break;
+        }
+    }
+    while(directory = strtok(NULL,"/"))
+    {
+        for(int i = 0; i < 16; i++)
+        {
+            if(compare(directory, dir[i].DIR_Name) && dir[i].DIR_Attr == 0x10)
+            {
+                int cluster = dir[i].DIR_FirstClusterLow;
+                // standard for ../
+                if(cluster == 0)
+                {
+                    cluster = 2;
+                }
+                int offset = LBAtoOffset(cluster);
+                fseek(fp, offset, SEEK_SET);
+                fread(&dir[0],sizeof(struct DirectoryEntry), 16, fp);
+            }
+        }
+    }
 }
 void FAT32ls()
 {
@@ -402,8 +467,14 @@ void FAT32undel(char* name)
 
 }
 
-bool compare(char input[12], char IMG_Name[12])
+bool compare(char* name, char* dirName)
 {
+
+    char input[12];
+    char IMG_Name[12];
+
+    strcpy(input, name);
+    strcpy(IMG_Name, dirName);
 
     char expanded_name[12];
     memset( expanded_name, ' ', 12 );
