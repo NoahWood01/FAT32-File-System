@@ -212,7 +212,7 @@ int main()
         //token[2] offset;
         //token[3] # of bytes
 
-        FAT32read(token[0], atoi(token[2]), atoi(token[3]));
+        FAT32read(token[1], atoi(token[2]), atoi(token[3]));
 
       }
       else if(strcmp(token[0], "cd") == 0)
@@ -346,6 +346,8 @@ void FAT32get(char* name)
     {
         if(compare(name, dir[i].DIR_Name))
         {
+            FILE *ofp;
+            ofp = fopen(name,"w");
             printf("poop\n");
             int cluster = dir[i].DIR_FirstClusterLow;
             int offset = LBAtoOffset(cluster);
@@ -368,13 +370,16 @@ void FAT32get(char* name)
                fwrite(buffer, size, 1, ofp);
             }
             fclose(ofp);
+
             found = true;
             break;
+
         }
-        if(!found)
-        {
-            printf("Error: File not found.\n");
-        }
+
+    }
+    if(!found)
+    {
+        printf("Error: File not found.\n");
     }
 
 }
@@ -489,14 +494,27 @@ void FAT32read(char* name, int offset, int numOfBytes)
   //find
   // int offset = Fileoffset + initOffset;
   // offset += fileOffset;
-  fseek(fp, offset, SEEK_SET);
-  fread(buffer, numOfBytes, 1, fp);
-
-  for(int i = 0; i < numOfBytes; i++)
+  bool found = false;
+  for(int i = 0; i < 16; i++)
   {
-    printf("%d ", buffer[i]);
+      if(compare(name, dir[i].DIR_Name))
+      {
+          fseek(fp, offset, SEEK_SET);
+          fread(buffer, numOfBytes, 1, fp);
+
+          for(int i = 0; i < numOfBytes; i++)
+          {
+            printf("%d ", buffer[i]);
+          }
+          printf("\n");
+          found = true;
+          break;
+      }
   }
-  printf("\n");
+  if(!found)
+  {
+      printf("Error: Directory not found.\n");
+  }
 }
 void FAT32del(char* name)
 {
@@ -513,8 +531,8 @@ bool compare(char* name, char* dirName)
     char input[12];
     char IMG_Name[12];
 
-    strcpy(input, name);
-    strcpy(IMG_Name, dirName);
+    strncpy(input, name, 12);
+    strncpy(IMG_Name, dirName, 12);
 
     char expanded_name[12];
     memset( expanded_name, ' ', 12 );
