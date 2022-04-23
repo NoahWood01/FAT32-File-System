@@ -81,6 +81,7 @@ uint16_t BPB_RsvdSecCnt;
 uint8_t BPB_NumFATs;
 uint32_t BPB_FATSz32;
 uint8_t buffer[512];
+int last_offset = 0x100400;
 
 
 
@@ -318,6 +319,11 @@ int16_t NextLB(uint32_t sector)
 
 int LBAtoOffset(int32_t sector)
 {
+    // standard for ../
+    if(sector == 0)
+    {
+        sector = 2;
+    }
   return ((sector - 2) * BPB_BytesPerSec) + (BPB_BytesPerSec * BPB_RsvdSecCnt) + (BPB_NumFATs * BPB_FATSz32 * BPB_BytesPerSec);
 }
 
@@ -340,12 +346,14 @@ void FAT32get(char* name)
     {
         if(compare(name, dir[i].DIR_Name))
         {
+            printf("poop\n");
             int cluster = dir[i].DIR_FirstClusterLow;
             int offset = LBAtoOffset(cluster);
             int size = dir[i].DIR_FileSize;
             fseek(fp, offset, SEEK_SET);
             while(size >= 512)
             {
+                printf("poop\n");
                fread(buffer, 512, 1, fp);
                fwrite(buffer, 512, 1, ofp);
                size = size - 512;
@@ -358,8 +366,8 @@ void FAT32get(char* name)
             {
                fread(buffer, size, 1, fp);
                fwrite(buffer, size, 1, ofp);
-               fclose(ofp);
             }
+            fclose(ofp);
             found = true;
             break;
         }
@@ -394,40 +402,72 @@ void FAT32cd(char* name)
 {
     char * directory;
     directory = strtok(name, "/");
-    for(int i = 0; i < 16; i++)
+    int offset;
+    bool found = false;
+    if(strcmp(directory,"..") == 0)
     {
-        if(compare(directory, dir[i].DIR_Name) && dir[i].DIR_Attr == 0x10)
-        {
-            int cluster = dir[i].DIR_FirstClusterLow;
-            // standard for ../
-            if(cluster == 0)
-            {
-                cluster = 2;
-            }
-            int offset = LBAtoOffset(cluster);
-            fseek(fp, offset, SEEK_SET);
-            fread(&dir[0],sizeof(struct DirectoryEntry), 16, fp);
-            break;
-        }
+        fseek(fp, last_offset, SEEK_SET);
+        fread(&dir[0],sizeof(struct DirectoryEntry), 16, fp);
     }
-    while(directory = strtok(NULL,"/"))
+    else
     {
         for(int i = 0; i < 16; i++)
         {
             if(compare(directory, dir[i].DIR_Name) && dir[i].DIR_Attr == 0x10)
             {
                 int cluster = dir[i].DIR_FirstClusterLow;
-                // standard for ../
-                if(cluster == 0)
+                if(strcmp(directory,"..") == 0)
                 {
-                    cluster = 2;
+                    offset = last_offset;
                 }
-                int offset = LBAtoOffset(cluster);
+                else
+                {
+                    offset = LBAtoOffset(cluster);
+                }
                 fseek(fp, offset, SEEK_SET);
                 fread(&dir[0],sizeof(struct DirectoryEntry), 16, fp);
+                found = true;
+                break;
             }
         }
     }
+
+    while(directory = strtok(NULL,"/"))
+    {
+        if(strcmp(directory,"..") == 0)
+        {
+            fseek(fp, last_offset, SEEK_SET);
+            fread(&dir[0],sizeof(struct DirectoryEntry), 16, fp);
+        }
+        else
+        {
+            for(int i = 0; i < 16; i++)
+            {
+                if(compare(directory, dir[i].DIR_Name) && dir[i].DIR_Attr == 0x10)
+                {
+                    int cluster = dir[i].DIR_FirstClusterLow;
+                    if(strcmp(directory,"..") == 0)
+                    {
+                        offset = last_offset;
+                    }
+                    else
+                    {
+                        offset = LBAtoOffset(cluster);
+                    }
+
+                    fseek(fp, offset, SEEK_SET);
+                    fread(&dir[0],sizeof(struct DirectoryEntry), 16, fp);
+                    found = true;
+                    break;
+                }
+            }
+        }
+    }
+    if(!found)
+    {
+        printf("Error: Directory not found.\n");
+    }
+    last_offset = offset;
 }
 void FAT32ls()
 {
