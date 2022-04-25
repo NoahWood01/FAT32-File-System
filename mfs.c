@@ -82,6 +82,7 @@ uint8_t BPB_NumFATs;
 uint32_t BPB_FATSz32;
 uint8_t buffer[512];
 int last_offset = 0x100400;
+uint8_t deletedAttribute; //holds deleted file previous attribute for undel 
 
 
 
@@ -193,17 +194,25 @@ int main()
     {
       if(strcmp(token[0], "undel") == 0)
       {
-        FAT32undel(token[1]);
+
         if(delValid == true)
         {
-          //undel
+          FAT32undel(token[1]);
         }
         else
         {
           printf("Error: Can't undel last change.\n");
         }
       }
-      delValid = false;
+      if(strcmp(token[0], "ls") == 0)
+      {
+        FAT32ls();
+      }
+      else
+      {
+        delValid = false;
+      }
+
 
       if(strcmp(token[0],"read") == 0)
       {
@@ -234,10 +243,6 @@ int main()
       else if(strcmp(token[0], "stat") == 0)
       {
         FAT32stat(token[1]);
-      }
-      else if(strcmp(token[0], "ls") == 0)
-      {
-        FAT32ls();
       }
       else if(strcmp(token[0], "get") == 0)
       {
@@ -270,7 +275,6 @@ int main()
       else if(strcmp(token[0], "del") == 0)
       {
         FAT32del(token[1]);
-        delValid = true;
       }
 
     }
@@ -479,7 +483,7 @@ void FAT32ls()
     for(int i = 0; i < 16; i++)
     {
         if((dir[i].DIR_Attr == 0x01 || dir[i].DIR_Attr == 0x10 ||
-            dir[i].DIR_Attr == 0x20) && dir[i].DIR_Name[0] != 0xe5)
+            dir[i].DIR_Attr == 0x20) && dir[i].DIR_Name[0] != 0xe5 )
         {
             char name[12];
             memcpy(name, dir[i].DIR_Name, 11);
@@ -518,11 +522,27 @@ void FAT32read(char* name, int offset, int numOfBytes)
 }
 void FAT32del(char* name)
 {
-
+  for(int i = 0; i < 16; i++)
+  {
+      if(compare(name, dir[i].DIR_Name))
+      {
+          deletedAttribute = dir[i].DIR_Attr; //saves deleted file's deleted attribute
+          dir[i].DIR_Attr = 0x02; //declares the file hidden/deleted
+          delValid = true;
+          printf("Deleted %s.\n",name);
+      }
+  }
 }
 void FAT32undel(char* name)
 {
-
+  for(int i = 0; i < 16; i++)
+  {
+      if(compare(name, dir[i].DIR_Name) && dir[i].DIR_Attr == 0x02)
+      {
+          dir[i].DIR_Attr = deletedAttribute; //returns previous dir attribute
+          printf("Undeleted %s\n",name);
+      }
+  }
 }
 
 bool compare(char* name, char* dirName)
