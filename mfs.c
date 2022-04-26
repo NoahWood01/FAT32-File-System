@@ -82,7 +82,7 @@ uint8_t BPB_NumFATs;
 uint32_t BPB_FATSz32;
 uint8_t buffer[512];
 int last_offset = 0x100400;
-uint8_t deletedAttribute; //holds deleted file previous attribute for undel 
+uint8_t deletedAttribute; //holds deleted file previous attribute for undel
 
 
 
@@ -137,12 +137,13 @@ int main()
 
     // Now print the tokenized input as a debug check
     // \TODO Remove this code and replace with your FAT32 functionality
-
+    /*
     int token_index  = 0;
     for( token_index = 0; token_index < token_count; token_index ++ )
     {
       printf("token[%d] = %s\n", token_index, token[token_index] );
     }
+    */
 
     if(token[0] == NULL)
     {
@@ -180,7 +181,7 @@ int main()
     {
       if(fp == NULL)
       {
-        printf("Error: File system not open./n");
+        printf("Error: File system not open.\n");
       }
       else
       {
@@ -227,50 +228,7 @@ int main()
       else if(strcmp(token[0], "cd") == 0)
       {
         FAT32cd(token[1]);
-        // fseek(fp,)
-        // int entry = findFile(token[1]);
-        // int cluster = dir[i].DIR_FirstClusterLow;
-        // int offset = LBAtoOffset(cluster);
-        // fseek(fp, offset, SEEK_SET);
-        // fread(dir, sizeof(dir), 16, fp);
 
-      }
-      else if(strcmp(token[0], "info") == 0)
-      {
-        FAT32info();
-
-      }
-      else if(strcmp(token[0], "stat") == 0)
-      {
-        FAT32stat(token[1]);
-      }
-      else if(strcmp(token[0], "get") == 0)
-      {
-        FAT32get(token[1]);
-        // compare.c for string name token[1]
-        // int cluster = dir[i].DIR_FirstClusterLow;
-        // int offset = LBAtoOffset(cluster);
-        // int size = dir[i].size;
-        // fseek(fp, offset, SEEK_SET);
-        // ofp = fopen(token[1], "w");
-        // uint8_t buffer[512];
-        // while(size > 512) //might be BPB_BytesPerSec
-        // {
-        //
-        //   fread(buffer, 512, 1, fp);
-        //   fwrite(buffer, 512, 1, ofp);
-        //   size = size - 512;
-        //   cluster = NextLB(cluster);
-        //   offset = LBAtooffset(cluster);
-        //   fseek(fp, offset, SEEK_SET);
-        //
-        // }
-        // if(size > 0)
-        // {
-        //   fread(buffer, size, 1, fp);
-        //   fwrite(buffer, size, 1, ofp);
-        //   fclose(ofp);
-        // }
       }
       else if(strcmp(token[0], "del") == 0)
       {
@@ -346,20 +304,21 @@ void FAT32info()
 void FAT32get(char* name)
 {
     bool found = false;
+    // search through directory entries for name
     for(int i = 0; i < 16; i++)
     {
-        if(compare(name, dir[i].DIR_Name))
+        if(compare(name, dir[i].DIR_Name) && dir[i].DIR_Attr != 0x02)
         {
+            // create output file with write
             FILE *ofp;
             ofp = fopen(name,"w");
-            printf("poop\n");
             int cluster = dir[i].DIR_FirstClusterLow;
             int offset = LBAtoOffset(cluster);
             int size = dir[i].DIR_FileSize;
             fseek(fp, offset, SEEK_SET);
+            // loop until the size is empty
             while(size >= 512)
             {
-                printf("poop\n");
                fread(buffer, 512, 1, fp);
                fwrite(buffer, 512, 1, ofp);
                size = size - 512;
@@ -368,6 +327,7 @@ void FAT32get(char* name)
                fseek(fp, offset, SEEK_SET);
 
             }
+            //edge case
             if(size > 0)
             {
                fread(buffer, size, 1, fp);
@@ -390,10 +350,12 @@ void FAT32get(char* name)
 void FAT32stat(char* name)
 {
     bool found = false;
+    // search through directory entries for name
     for(int i = 0; i < 16; i++)
     {
-        if(compare(name, dir[i].DIR_Name))
+        if(compare(name, dir[i].DIR_Name) && dir[i].DIR_Attr != 0x02)
         {
+            // print corresponding attributes
             printf("%-20s %-15s %-25s\n","File Attribute","Size", "Starting Cluster Number");
             printf("%-20d %-15d %-25d\n",dir[i].DIR_Attr,
                 dir[i].DIR_FileSize, dir[i].DIR_FirstClusterLow);
@@ -420,6 +382,7 @@ void FAT32cd(char* name)
     }
     else
     {
+        // search through directory entries for name
         for(int i = 0; i < 16; i++)
         {
             if(compare(directory, dir[i].DIR_Name) && dir[i].DIR_Attr == 0x10)
@@ -441,6 +404,7 @@ void FAT32cd(char* name)
         }
     }
 
+    // handle multiple sub directory paths
     while(directory = strtok(NULL,"/"))
     {
         if(strcmp(directory,"..") == 0)
@@ -450,6 +414,7 @@ void FAT32cd(char* name)
         }
         else
         {
+            // search through directory entries for name
             for(int i = 0; i < 16; i++)
             {
                 if(compare(directory, dir[i].DIR_Name) && dir[i].DIR_Attr == 0x10)
@@ -480,8 +445,10 @@ void FAT32cd(char* name)
 }
 void FAT32ls()
 {
+    // search through directory entries for name
     for(int i = 0; i < 16; i++)
     {
+        // if attribute is one we care about proceed.
         if((dir[i].DIR_Attr == 0x01 || dir[i].DIR_Attr == 0x10 ||
             dir[i].DIR_Attr == 0x20) && dir[i].DIR_Name[0] != 0xe5 )
         {
@@ -495,13 +462,11 @@ void FAT32ls()
 
 void FAT32read(char* name, int offset, int numOfBytes)
 {
-  //find
-  // int offset = Fileoffset + initOffset;
-  // offset += fileOffset;
   bool found = false;
+  // search through directory entries for name
   for(int i = 0; i < 16; i++)
   {
-      if(compare(name, dir[i].DIR_Name))
+      if(compare(name, dir[i].DIR_Name) && dir[i].DIR_Attr != 0x02)
       {
           fseek(fp, offset, SEEK_SET);
           fread(buffer, numOfBytes, 1, fp);
@@ -545,26 +510,26 @@ void FAT32undel(char* name)
   }
 }
 
-bool compare(char* name, char* dirName)
+bool compare(char* Fname, char* dirName)
 {
+    // get a copy of the searched name
+    char * name = (char *)malloc(sizeof(Fname));
+    strcpy(name, Fname);
 
-    char input[12];
-    char IMG_Name[12];
-
-    strncpy(input, name, 12);
-    strncpy(IMG_Name, dirName, 12);
-
+    // create a name with only blanks
     char expanded_name[12];
     memset( expanded_name, ' ', 12 );
 
-    char *token = strtok( input, "." );
+    char *token = strtok( name, "." );
 
+    // copy nonblanks
     strncpy( expanded_name, token, strlen( token ) );
 
     token = strtok( NULL, "." );
 
     if( token )
     {
+        // copy in file extension at last 3 digits
       strncpy( (char*)(expanded_name+8), token, strlen(token ) );
     }
 
@@ -573,12 +538,13 @@ bool compare(char* name, char* dirName)
     int i;
     for( i = 0; i < 11; i++ )
     {
+        // case insensitive
       expanded_name[i] = toupper( expanded_name[i] );
     }
 
-    if( strncmp( expanded_name, IMG_Name, 11 ) == 0 )
+    if( strncmp( expanded_name, dirName, 11 ) == 0 )
     {
-      printf("They matched\n");
+
       return true;
     }
     else
