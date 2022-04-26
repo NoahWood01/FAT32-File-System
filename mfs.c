@@ -228,7 +228,18 @@ int main()
       else if(strcmp(token[0], "cd") == 0)
       {
         FAT32cd(token[1]);
-
+      }
+      else if(strcmp(token[0], "info") == 0)
+      {
+          FAT32info();
+      }
+      else if(strcmp(token[0], "stat") == 0)
+      {
+          FAT32stat(token[1]);
+      }
+      else if(strcmp(token[0], "get") == 0)
+      {
+          FAT32get(token[1]);
       }
       else if(strcmp(token[0], "del") == 0)
       {
