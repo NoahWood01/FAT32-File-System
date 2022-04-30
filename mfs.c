@@ -399,6 +399,7 @@ void FAT32cd(char* name)
     {
         for(int i = 0; i < 16; i++)
         {
+            // get .. directory
             if(strstr("..", dir[i].DIR_Name) != NULL)
             {
 
@@ -411,6 +412,7 @@ void FAT32cd(char* name)
                 {
                     offset = LBAtoOffset(cluster);
                 }
+                //offset = last_offset;
                 fseek(fp, offset, SEEK_SET);
                 fread(&dir[0],sizeof(struct DirectoryEntry), 16, fp);
                 found = true;
@@ -427,6 +429,7 @@ void FAT32cd(char* name)
         {
             if(compare(directory, dir[i].DIR_Name) && dir[i].DIR_Attr == 0x10)
             {
+                last_offset = offset;
                 int cluster = dir[i].DIR_FirstClusterLow;
                 if(strcmp(directory,"..") == 0)
                 {
@@ -445,6 +448,7 @@ void FAT32cd(char* name)
     }
 
     // handle multiple sub directory paths
+    /*
     while(directory = strtok(NULL,"/"))
     {
         if(strcmp(directory,"..") == 0)
@@ -494,11 +498,12 @@ void FAT32cd(char* name)
             }
         }
     }
+    */
     if(!found)
     {
         printf("Error: Directory not found.\n");
     }
-    last_offset = offset;
+    //last_offset = offset;
 }
 void FAT32ls()
 {
